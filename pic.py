@@ -21,3 +21,5 @@ def getImg(html):
 
 html = getHtml("http://tieba.baidu.com/p/2460150866")
 getImg(html)
+print'yes'
+print'no'
