@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.tdw.dao.UserBasicInfoDAO">
+
+
+    <sql id="userbasicInfo_ym">
+        u.userName,u.sex,u.creditAmount,u.identityCard,u.birthdate,u.telNo,u.visaAgency,u.usedCreditAmount,
+           u.bankNo,u.usedCreditAmount,u.creditAmount,u.frontCard,u.backCard,c.channelName,u.realName,u.bankName,ud.address
+	</sql>
+
+    <select id="seluserbasicinfo" parameterType="java.lang.String" resultType="cn.tdw.domain.UserBasicInfo">
+	    SELECT <include refid="userbasicInfo_ym"/>
+        FROM UserBasicInfo AS u
+        LEFT JOIN UserChannelRegister as uc ON uc.userId = u.userId
+        LEFT JOIN ChannelBusiness as c  ON c.channelId =uc.channelId
+        LEFT JOIN UserDetailInfo as ud ON ud.userId=u.userId
+        WHERE u.userId=#{userId}
+    </select>
+
+
+</mapper>

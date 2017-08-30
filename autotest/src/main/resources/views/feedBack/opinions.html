@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>意见反馈</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+	<link rel="stylesheet" href="../../css/bootstrap.min.css">
+	<link rel="stylesheet" href="../../css/font-awesome.min.css">
+	<link rel="stylesheet" href="../../css/AdminLTE.min.css">
+	<!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+	<link rel="stylesheet" href="../../css/all-skins.min.css">
+	<link rel="stylesheet" href="../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+	<link rel="stylesheet" href="../../plugins/ztree/css/metroStyle/metroStyle.css">
+	<link rel="stylesheet" href="../../css/bootstrap-table.min.css">
+	<link rel="stylesheet" href="../../plugins/datepicker/bootstrap-datepicker.min.css">
+	<link rel="stylesheet" href="../../css/main.css">
+
+	<script src="../../libs/jquery.min.js"></script>
+	<script src="../../plugins/layer/layer.js"></script>
+	<script src="../../libs/bootstrap.min.js"></script>
+	<script src="../../libs/vue.min.js"></script>
+	<script src="../../libs/bootstrap-table.min.js"></script>
+	<script src="../../plugins/jqgrid/grid.locale-cn.js"></script>
+	<script src="../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+	<script src="../../plugins/ztree/jquery.ztree.all.min.js"></script>
+	<script src="../../js/common.js"></script>
+	<script src="../../plugins/datepicker/bootstrap-datepicker.js"></script>
+	<script src="../../plugins/datepicker/bootstrap-datepicker.zh-CN.js"></script>
+</head>
+<body>
+
+<div id="rrapp" v-cloak>
+	<div>
+
+
+		<div class="grid-btn form-inline">
+
+
+			<div class="form-group ">
+				<label class="control-label">时间：</label>
+				<div class="input-daterange input-group" >
+					<input type="text" class="form-control" id="startDate"  readonly="true"/>
+					<span class="input-group-addon"> ~ </span>
+					<input type="text" class="form-control" id="endDate"  readonly="true"/>
+				</div>
+			</div>
+
+			<a class="btn btn-default" @click="query">查询</a>
+		</div>
+
+		<table id="jqGrid"></table>
+		<div id="jqGridPager"></div>
+	</div>
+
+</div>
+
+
+
+<script src="../../js/feedBack/opinions.js"></script>
+</body>
+</html>

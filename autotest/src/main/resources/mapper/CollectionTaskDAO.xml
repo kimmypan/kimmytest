@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.tdw.dao.CollectionTaskDAO">
+	<resultMap id="BaseResultMap" type="cn.tdw.domain.CollectionTask">
+		<id column="id" jdbcType="INTEGER" property="id" />
+		<result column="borrowId" jdbcType="CHAR" property="borrow_id" />
+		<result column="trackerId" jdbcType="INTEGER" property="tracker_id" />
+		<result column="remark" jdbcType="VARCHAR" property="remark" />
+		<result column="createTime" jdbcType="TIMESTAMP" property="create_time" />
+		<result column="updateTime" jdbcType="TIMESTAMP" property="update_time" />
+		<result column="isDeleted" jdbcType="BIT" property="is_deleted" />
+	</resultMap>
+
+	<resultMap id="TrackersInfoResultMap" type="cn.tdw.dto.TrackersInfoDTO"></resultMap>
+
+	<select id="queryStatisticsTasks" resultType="cn.tdw.dto.StatisticsTaskDTO" >
+		SELECT
+		ct.tracker_id,
+		COUNT(*) task_count,
+		SUM(odr.cost+odr.penaltyAmount) task_amount,
+		SUM(CASE WHEN bi.`status`=6 THEN 1 ELSE 0 END) repay_count,
+		SUM(CASE WHEN bi.`status`=6 THEN odr.cost+odr.penaltyAmount ELSE 0 END) repay_amount
+		FROM
+		collection_task ct JOIN OverDueRecord odr ON ct.borrow_id = odr.borrowId JOIN BorrowInfo bi ON ct.borrow_id = bi.borrowId
+
+		<where>
+
+			AND  bi.`status` IN(6,7,8)
+			AND  ct.is_deleted=0
+			<if test="startTime !=null ">
+				AND ct.update_time >=#{startTime, jdbcType=DATE }
+			</if>
+			<if test="endTime !=null ">
+				AND ct.update_time &lt; #{endTime, jdbcType=DATE }
+			</if>
+
+		</where>
+
+		GROUP BY
+		ct.tracker_id
+	</select>
+
+	<select id="getTrackerList" parameterType="cn.tdw.dto.TrackersInfoSearchDTO" resultMap="TrackersInfoResultMap">
+		SELECT
+			su.user_id AS userId,
+			su.username AS userName,
+			su.job_num AS jobNum,
+			su.nickname AS nickName,
+			IFNULL(AT .allocateToday, 0) AS allocateToday,
+			IFNULL(nr.noReslove, 0) AS noReslove
+		FROM
+			(SELECT DISTINCT user_id FROM sys_user_role) AS ur
+		LEFT JOIN
+			sys_user AS su ON ur.user_id = su.user_id
+		LEFT JOIN (
+			SELECT
+				tracker_id,
+				COUNT(*) AS allocateToday
+			FROM
+				collection_task
+			WHERE
+				YEAR (create_time) = YEAR (NOW())
+			AND MONTH (create_time) = MONTH (NOW())
+			AND DAY (create_time) = DAY (now())
+			GROUP BY
+				tracker_id
+		) AS AT ON su.user_id = AT .tracker_id
+		LEFT JOIN (
+			SELECT
+				ct.tracker_id,
+				COUNT(*) AS noReslove
+			FROM
+				collection_task AS ct
+			LEFT JOIN BorrowInfo AS b ON ct.borrow_id = b.borrowId
+			WHERE
+				`status` IN (7, 8)
+			GROUP BY
+				ct.tracker_id
+		) AS nr ON su.user_id = nr.tracker_id
+		<where>
+			<if test="name!=null and name!=''">
+				and su.username = #{name}
+			</if>
+			<if test="nickName!=null and nickName!=''">
+				and su.nickname = #{nickName}
+			</if>
+		</where>
+		ORDER BY IFNULL(AT .allocateToday, 0) ,IFNULL(nr.noReslove, 0)
+	</select>
+
+	<update id="updatePatchTrackerId">
+		update collection_task
+		set tracker_id = #{trackerId}
+		where borrow_id in
+		<foreach collection="borrowIds" index="index" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</update>
+
+	<select id="lockRecord" parameterType="java.util.List" resultMap="BaseResultMap">
+		SELECT * FROM collection_task
+		WHERE  borrow_id in
+		<foreach collection="borrowIds" index="index" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		FOR UPDATE
+	</select>
+
+	<!-- 未分配催收 -->
+	<select id="listTaskNotAllot" resultType="cn.tdw.dto.AllocationsInfoDTO" parameterType="cn.tdw.dto.AllocationsInfoSearchDTO">
+		SELECT b.borrowId, u.userId, u.realName as userName, u.telNo, b.amount,
+		o.penaltyAmount, b.status, datediff(curdate(), b.cycDate) as overdueDays, o.cost, b.cycDate
+		FROM BorrowInfo b
+		LEFT JOIN UserBasicInfo u ON b.userId = u.userId
+		LEFT JOIN OverDueRecord o ON o.borrowId = b.borrowId
+		WHERE
+		<choose>
+			<when test="repayStatue != null">
+				b.status = #{repayStatue}
+			</when>
+			<otherwise>
+				b.status in (7,8)
+			</otherwise>
+		</choose>
+
+		AND NOT EXISTS(SELECT borrow_id FROM collection_task t WHERE b.borrowId = t.borrow_id)
+
+		<if test="userName != null and userName != ''">
+			AND u.realName = #{userName}
+		</if>
+		<if test="mobile != null and mobile != ''">
+			AND u.telNo = #{mobile}
+		</if>
+		<if test="repayBDate != null and repayBDate != ''">
+			AND b.cycDate >= #{repayBDate}
+		</if>
+		<if test="repayEDate != null and repayEDate != ''">
+			<![CDATA[
+				AND b.cycDate <= #{repayEDate}
+			]]>
+		</if>
+
+		<choose>
+			<when test="overdueMinDay != null and overdueMaxDay != null">
+				AND datediff(curdate(), b.cycDate) BETWEEN #{overdueMinDay} AND #{overdueMaxDay}
+			</when>
+			<when test="overdueMinDay != null">
+				AND datediff(curdate(), b.cycDate) >= #{overdueMinDay}
+			</when>
+			<when test="overdueMaxDay != null">
+				<![CDATA[AND datediff(curdate(), b.cycDate) <= #{overdueMaxDay}]]>
+			</when>
+			<otherwise></otherwise>
+		</choose>
+
+		ORDER BY b.cycDate ASC
+	</select>
+
+	<!-- 未分配催收总数 -->
+	<select id="countTaskNotAllot" resultType="java.lang.Long" >
+		SELECT IFNULL(count(*),0)
+		FROM BorrowInfo b
+		LEFT JOIN UserBasicInfo u ON b.userId = u.userId
+		LEFT JOIN OverDueRecord o ON o.borrowId = b.borrowId
+		WHERE
+		b.status in (7,8)
+		AND NOT EXISTS(SELECT borrow_id FROM collection_task t WHERE b.borrowId = t.borrow_id)
+	</select>
+
+	<select id="countTaskAllot" resultType="java.lang.Long">
+		SELECT
+			IFNULL(count(DISTINCT borrow_id),0)
+		FROM
+			collection_task AS ct
+		JOIN BorrowInfo AS bi ON ct.borrow_id = bi.borrowId
+		WHERE
+			bi.`status` IN (7, 8)
+	</select>
+
+	<insert id="addBatchCollectionTask" parameterType="java.util.Map" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO collection_task(borrow_id, tracker_id, create_time)
+		VALUES
+		<foreach collection="borrowIds" item="borrowId" separator=",">
+			(#{borrowId}, #{trackerId}, now())
+		</foreach>
+	</insert>
+
+	<select id="listByBorrowIds" parameterType="java.util.List" resultMap="BaseResultMap">
+		SELECT id, borrow_id, tracker_id
+		FROM collection_task
+		WHERE borrow_id in
+		<foreach collection="list" item="borrowId" open="(" separator="," close=")">#{borrowId}</foreach>
+	</select>
+
+
+	<insert id="save" parameterType="cn.tdw.domain.CollectionTask" keyProperty="id" useGeneratedKeys="true">
+		INSERT INTO collection_task(
+		borrow_id, tracker_id,
+		<if test="createTime != null">
+			create_time,
+		</if>
+		 <if test="updateTime != null">
+			update_time,
+		 </if>
+		<if test="remark != null">
+			remark,
+		</if>
+		is_deleted)
+		VALUES (#{borrowId}, #{trackerId},
+		<if test="createTime != null">
+			#{createTime},
+		</if>
+		<if test="updateTime != null">
+			#{updateTime},
+		</if>
+		<if test="remark != null">
+			#{remark},
+		</if>
+		#{isDeleted});
+	</insert>
+</mapper>

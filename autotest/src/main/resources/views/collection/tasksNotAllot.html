@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>菜单管理</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+	<link rel="stylesheet" href="../../css/bootstrap.min.css">
+	<link rel="stylesheet" href="../../css/font-awesome.min.css">
+	<link rel="stylesheet" href="../../css/AdminLTE.min.css">
+	<!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+	<link rel="stylesheet" href="../../css/all-skins.min.css">
+	<link rel="stylesheet" href="../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+	<link rel="stylesheet" href="../../plugins/ztree/css/metroStyle/metroStyle.css">
+	<link rel="stylesheet" href="../../css/bootstrap-table.min.css">
+	<link rel="stylesheet" href="../../css/main.css">
+	<link rel="stylesheet" href="../../plugins/datepicker/bootstrap-datepicker.min.css">
+
+	<script src="../../libs/jquery.min.js"></script>
+	<script src="../../plugins/layer/layer.js"></script>
+	<script src="../../libs/bootstrap.min.js"></script>
+	<script src="../../libs/vue.min.js"></script>
+	<script src="../../libs/bootstrap-table.min.js"></script>
+	<script src="../../libs/router.js"></script>
+	<script src="../../plugins/jqgrid/grid.locale-cn.js"></script>
+	<script src="../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+	<script src="../../plugins/ztree/jquery.ztree.all.min.js"></script>
+	<script src="../../js/common.js"></script>
+	<script src="../../plugins/datepicker/bootstrap-datepicker.js"></script>
+	<script src="../../plugins/datepicker/bootstrap-datepicker.zh-CN.js"></script>
+</head>
+<style>
+	div.form-group {margin:5px;}
+	.layui-layer-my[type=dialog]{min-width:280px}
+	.layui-layer-my .layui-layer-title{background:#4476A7;color:#fff;border:none}
+	.layui-layer-my .layui-layer-btn{padding:10px;text-align:right;border-top:1px solid #E9E7E7}
+	.layui-layer-my .layui-layer-btn a{background:#4476A7;border:none}
+	.layui-layer-my .layui-layer-btn .layui-layer-btn1{background:#C9C5C5}
+</style>
+<body>
+
+<div id="rrapp" v-cloak>
+	<!-- 列表 START -->
+	<div id="ShowNotAllotDiv">
+		<div class="nav-tabs-custom">
+			<ul class="nav nav-tabs">
+				<li class="active"><a data-toggle="tab" aria-expanded="true">工作任务</a></li>
+				<li class=""><a href="details.html">分配详情</a></li>
+			</ul>
+			<!-- /.tab-content -->
+		</div>
+
+		<div class="btn-group">
+			<button id="notAssigned" type="button" class="btn btn-primary"><b>未分配（<span id="notAllotSpan" >{{htmlShow.notAllotCount}}</span>）</b></button>
+			<button id="notHandled" type="button" class="btn btn-default" @click="toTasks" ><b>已分配未处理（<span id="AllotedSpan">{{htmlShow.allotedCount}}</span>）</b></button>
+		</div>
+
+		<form id="queryForm">
+		<div class="form-inline">
+			<div class="row">
+				<div class="col-md-3">
+					<div style="margin-bottom: 10px;">
+						<label class="control-label">客户姓名：</label>
+						<input type="text" class="form-control" v-model="q.userName" id="userName">
+					</div>
+					<div style="margin-bottom: 10px;">
+						<label class="control-label">手机号码：</label>
+						<input type="text" class="form-control" v-model="q.telNo" id="telNo">
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div style="margin-bottom: 10px;">
+						<label class="control-label">还款状态：</label>
+						<select class="form-control" v-model="q.status" id="statusSel">
+							<option value="">=全部=</option>
+							<option value="7">已逾期</option>
+							<option value="8">严重逾期</option>
+						</select>
+					</div>
+					<div style="margin-bottom: 10px;">
+						<label class="control-label">逾期天数：</label>
+						<input type="text" maxlength="5" class="form-control" v-model="q.overDueDaysBegin" style="width: 5em" id="overDueDaysBegin"> ~
+						<input type="text" maxlength="5" class="form-control" v-model="q.overDueDaysEnd" style="width: 5em"  id="overDueDaysEnd"> 天
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div style="margin-bottom: 10px;">
+						<label class="control-label">还款时间：</label>
+						<div class="input-daterange input-group" >
+							<input type="text" class="form-control" id="cycDateBegin" style="width: 10em" v-model="q.cycDateBegin" readonly="true"/>
+							<span class="input-group-addon">至</span>
+							<input type="text" class="form-control" id="cycDateEnd" style="width: 10em" v-model="q.cycDateEnd" readonly="true"/>
+						</div>
+					</div>
+					<div style="margin-bottom: 10px;">
+						<a class="btn btn-primary" @click="query" style="margin-right: 30px">查 询</a>
+						<input type="reset" class="btn btn-primary" value="重 置" />
+					</div>
+				</div>
+			</div>
+		</div>
+		</form>
+
+		<table id="jqGrid" ></table>
+		<div id="jqGridPager" ></div>
+
+		<!--<div >-->
+			<!--<a href="javascript:;" class="btn btn-primary" @click="allotLayer" style="margin: 5px 5px 0px 0px;">分配</a>-->
+		<!--</div>-->
+
+		<div class="panel panel-default" style="margin-top: 5px;"  >
+			<div class="panel-heading">
+				已选择客户
+			</div>
+			<div class="panel-body" style="word-wrap:break-word;">
+				<span id="selectSpan">{{htmlShow.selectedNames}}</span>
+				<a href="javascript:;" v-if="htmlShow.showMore" @click="showSelectedNames" id="showMoreA" >更多</a>
+			</div>
+		</div>
+
+
+	</div>
+	<!-- 列表 END -->
+
+	<!-- 分配 START-->
+	<div style="display: none" id="allotDiv" style="margin: 5px;">
+		<div class="grid-btn form-inline">
+			<div class="form-group ">
+				<label class="control-label">姓名：</label>
+				<input type="text" class="form-control" v-model="allotQ.nickName" >
+			</div>
+			<div class="form-group ">
+				<a class="btn btn-primary" @click="allotQuery" >查 询</a>
+			</div>
+			已选择 <b style="color: red;" id="selectedBorrowIdB">{{htmlShow.selectedNum}}</b> 条未分配记录
+		</div>
+		<table id="allot" ></table>
+		<div id="allotPager"></div>
+	</div>
+	<!-- 分配 END -->
+	<div id="selectedNames" style="display: none;">
+		<div class="form-group" id="selectedNamesCnt" style="word-wrap:break-word;">{{htmlShow.selectedNamesAll}}</div>
+	</div>
+
+</div>
+
+<script src="../../js/inputValidate.js"></script>
+<script src="../../js/collection/cellColor.js"></script>
+<script src="../../js/collection/tasksNotAllot.js"></script>
+<script>
+    $('#cycDateBegin').datepicker({
+        language:  'zh-CN',
+        todayBtn:  'linked',
+        autoclose: true,
+        todayHighlight: 1,
+        startView: 0,
+        format:'yyyy-mm-dd',
+        clearBtn:true,
+        forceParse:true
+    }).on('changeDate',function(e){
+        var startTime = e.date;
+        $('#cycDateEnd').datepicker('setStartDate',startTime);
+    });
+
+    $('#cycDateEnd').datepicker({
+        language:  'zh-CN',
+        todayBtn:  'linked',
+        autoclose: true,
+        todayHighlight: 1,
+        startView: 0,
+        format:'yyyy-mm-dd',
+        clearBtn:true,
+        forceParse:true
+    }).on('changeDate',function(e){
+        var endTime = e.date;
+        $('#cycDateBegin').datepicker('setEndDate',endTime);
+    });
+</script>
+</body>
+</html>

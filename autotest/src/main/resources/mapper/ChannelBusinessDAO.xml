@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.tdw.dao.ChannelBusinessDAO">
+
+	<resultMap id="BaseResultMap" type="cn.tdw.domain.ChannelBusiness">
+		<id column="channelId" jdbcType="INTEGER" property="channelId" />
+		<result column="channelCode" jdbcType="VARCHAR" property="channelCode" />
+		<result column="channelName" jdbcType="VARCHAR" property="channelName" />
+		<result column="userName" jdbcType="VARCHAR" property="userName" />
+		<result column="userPwd" jdbcType="CHAR" property="userPwd" />
+		<result column="createDate" jdbcType="TIMESTAMP" property="createDate" />
+		<result column="lastUpdated" jdbcType="TIMESTAMP" property="lastUpdated" />
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		channelId, channelCode, channelName, userName, userPwd, createDate, lastUpdated
+	</sql>
+
+	<sql id="Base_Table_Name">
+		ChannelBusiness
+	</sql>
+
+	<select id="list" resultMap="BaseResultMap">
+		SELECT channelId, channelName
+		FROM <include refid="Base_Table_Name"/>
+	</select>
+
+</mapper>

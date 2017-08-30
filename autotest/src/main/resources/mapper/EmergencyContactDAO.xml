@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.tdw.dao.EmergencyContactDAO">
+
+    <resultMap id="contactmap" type="cn.tdw.domain.EmergencyContact">
+        <id column="contactId"  property="contactId" />
+        <result column="userId"  property="userId" />
+        <result column="contactName" property="contactName" />
+        <result column="contactTelNo" property="contactTelNo" />
+        <result column="contactRelationShip" property="contactRelationShip" />
+        <result column="sortOrder"  property="sortOrder" />
+        <result column="timestamp" property="timestamp" />
+        <result column="lastUpdated"  property="lastUpdated" />
+    </resultMap>
+
+
+    <sql id="emergencycontact_ym">
+	contactId,contactName,contactTelNo,contactRelationShip
+	</sql>
+
+    <select id="selemergencycontact" resultMap="contactmap" parameterType="java.lang.String">
+	SELECT <include refid="emergencycontact_ym"/> FROM
+        EmergencyContact WHERE userId=#{userId}
+    </select>
+
+
+</mapper>
